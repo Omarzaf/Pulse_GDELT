@@ -1,0 +1,14 @@
+beautifulsoup4==4.12.3
+apscheduler==3.10.4
+deep-translator==1.11.4
+fastapi==0.115.6
+feedparser==6.0.11
+httpx==0.27.2
+langdetect==1.0.9
+pycountry==24.6.1
+pydantic==2.10.4
+pytest==8.3.4
+pytrends==4.9.2
+requests==2.32.3
+sqlalchemy==2.0.36
+uvicorn[standard]==0.34.0
