@@ -14,11 +14,10 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
 os.chdir(BACKEND_DIR)
 
-from sqlalchemy import delete
-
 from app.db import SessionLocal, init_db
 from app.models.sentiment import SentimentSnapshot
 from app.services.sentiment.aggregator import DAMPEN_FACTOR, ELEVATED_THRESHOLD, WEIGHTS, _level
+from sqlalchemy import delete
 
 init_db()
 db = SessionLocal()

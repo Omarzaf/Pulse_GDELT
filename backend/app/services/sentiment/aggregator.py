@@ -49,7 +49,7 @@ def compute_social_pulse(iso3: str, db: Session) -> SentimentSnapshot:
         if posts:
             results = score_texts([post["title"] for post in posts])
             reddit_score = negative_ratio(results) * 100
-            scored_posts = list(zip(posts, results))
+            scored_posts = list(zip(posts, results, strict=True))
             scored_posts.sort(
                 key=lambda item: item[1]["score"] if item[1]["label"] == "negative" else 0,
                 reverse=True,

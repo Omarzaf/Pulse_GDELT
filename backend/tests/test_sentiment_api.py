@@ -2,9 +2,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
 from app.models.sentiment import SentimentSnapshot
+from sqlalchemy.orm import Session
 
 
 def seed_snapshot(
@@ -68,3 +67,19 @@ def test_elevated_countries_requires_threshold_and_signal_convergence(client, db
     assert response.json()["elevated"] == [
         {"iso3": "COD", "score": 72.8, "level": "elevated", "signals_elevated": 4}
     ]
+
+
+def test_social_pulse_without_snapshot_returns_unavailable(client):
+    response = client.get("/api/countries/USA/social-pulse")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "No Social Pulse snapshot is available for this country"
+
+
+def test_compute_all_is_disabled_without_operator_opt_in(client, monkeypatch):
+    monkeypatch.delenv("SENTINEL_ENABLE_MUTATIONS", raising=False)
+
+    response = client.post("/api/social-pulse/compute-all")
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Operator-triggered ingestion and computation are disabled"

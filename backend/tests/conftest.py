@@ -1,7 +1,7 @@
-from collections.abc import Generator
 import os
-from pathlib import Path
 import sys
+from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault("SENTINEL_DISABLE_STARTUP_JOBS", "1")
+os.environ.setdefault("SENTINEL_ENABLE_MUTATIONS", "1")
 
 from app.db import Base, get_db
 from app.main import app

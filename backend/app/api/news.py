@@ -16,6 +16,7 @@ from app.schemas.news import (
     NewsListResponse,
 )
 from app.services.news_ingest import ingest_news, serialize_ingest_run
+from app.settings import require_mutations_enabled
 
 router = APIRouter()
 
@@ -114,7 +115,11 @@ def list_news(
     )
 
 
-@router.post("/ingest/news", response_model=NewsIngestRunRead)
+@router.post(
+    "/ingest/news",
+    response_model=NewsIngestRunRead,
+    dependencies=[Depends(require_mutations_enabled)],
+)
 def create_news_ingest_run(
     request: Optional[NewsIngestRequest] = None,
     db: Session = Depends(get_db),

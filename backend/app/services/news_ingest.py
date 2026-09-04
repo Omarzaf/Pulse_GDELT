@@ -136,14 +136,20 @@ def ingest_news(db: Session, request: NewsIngestRequest) -> NewsIngestRunRead:
                     run.duplicate_count += 1
                     continue
                 seen_urls.add(raw.source_url)
-                existing = db.scalar(select(NewsArticle).where(NewsArticle.source_url == raw.source_url))
+                existing = db.scalar(
+                    select(NewsArticle).where(NewsArticle.source_url == raw.source_url)
+                )
                 if existing:
                     run.duplicate_count += 1
                     continue
                 article, rejection_reasons = _build_article(raw, translate=request.translate)
                 if article is None:
                     run.articles_rejected += 1
-                    logger.info("Rejected unsafe news item from %s: %s", raw.source_key, ", ".join(rejection_reasons))
+                    logger.info(
+                        "Rejected unsafe news item from %s: %s",
+                        raw.source_key,
+                        ", ".join(rejection_reasons),
+                    )
                     continue
                 db.add(article)
                 run.articles_created += 1

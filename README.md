@@ -1,259 +1,208 @@
-# Sentinel Atlas Social Pulse Handoff
+# Sentinel Atlas Social Pulse
 
-This repo contains the latest working Social Pulse tab implementation for Sentinel Atlas.
-It is packaged as a self-contained React + FastAPI feature repo so a full stack developer can move the tab into the final product layout.
+Sentinel Atlas Social Pulse is a React and FastAPI research module that
+aggregates source-linked public news and behavioral signals for country-level
+exploration. The GitHub repository keeps its historical `Pulse_GDELT` slug, but
+the product, package, interface, and API use this single public name.
 
-This is the latest top-level Social Pulse app, not the older nested `apart-forecasting-tool-main` copy.
+## Status
 
-## What The Tab Does
+This is a maintained integration prototype, not a production early-warning
+service. It can render the frontend against a locally operated API and can
+ingest public sources when an operator explicitly enables networked actions.
+It does not provide medical advice, event forecasts, or individual risk scores.
 
-Social Pulse is a selected-country panel that turns public behavioral and media signals into an aggregate 0-100 concern score. It stays country-first: the user selects a country on the map, then the right-side country panel shows latest public news plus the Social Pulse section.
+There is no verified public deployment. Run it locally using the steps below.
 
-The Social Pulse section includes:
+## What It Does
 
-- A composite `social_pulse_score`.
-- A `low`, `moderate`, `elevated`, or `high` pulse level.
-- Four independent signal scores: Reddit fear, Wikipedia spike, search fear, and news sentiment.
-- A 7-day / 30-day chart toggle.
-- A 30-day baseline line.
-- An evidence drawer with source links.
-- A red pulse animation on the map when a country has 2+ elevated signals and score >= 55.
+For a selected country, the module can present:
 
-## Change History
+- recent source-linked public news;
+- a composite 0–100 Social Pulse research signal;
+- Reddit, Wikipedia, Google Trends, and news-sentiment components;
+- 7-day and 30-day history;
+- source evidence associated with a stored snapshot; and
+- an elevated-state map cue when at least two signals exceed the configured
+  threshold.
 
-1. Started with a country-first public news dashboard.
-   - Added map-based country selection.
-   - Kept the side navigation limited to `World Dashboard`, `Sources`, and `Time Series`.
-   - Avoided a separate News nav item and avoided country dropdown selection.
+The score is an exploratory convergence heuristic. It is not a probability,
+causal estimate, verified incident count, or country-risk rating.
 
-2. Added public news ingestion.
-   - Backend added FastAPI endpoints for latest and historical country news.
-   - SQLite stores articles and ingest runs.
-   - Sources include Google News RSS, ReliefWeb, WHO Disease Outbreak News, and ProMED where available.
-   - Frontend shows real-source headlines only, or an empty state if no reports are found.
+## Architecture
 
-3. Hardened news handling.
-   - Added safety filtering for individual-level health data and risky public-alert or wet-lab content.
-   - Added translation fallback behavior so failed translation does not break ingestion.
-   - Added country extraction rules that store unknown-country articles but keep them out of country-specific endpoints.
-   - Preserved exact empty states:
-     - `No news feed connected yet.`
-     - `No public news reports found in the last 48 hours.`
+- `src/`: React 19 and TypeScript frontend
+- `backend/app/`: FastAPI API, SQLAlchemy models, source adapters, and signal
+  aggregation
+- `backend/tests/`: isolated API and safety tests
+- `backend/scripts/seed_demo_data.py`: local synthetic demo-state generator
 
-4. Replaced the old historical-news panel with Social Pulse.
-   - Added `src/components/SocialPulse/SocialPulsePanel.tsx`.
-   - Updated `src/components/News/CountryNewsSidebar.tsx` to render Social Pulse for the selected country.
-   - Kept latest 48-hour public news above the Social Pulse section.
-   - Removed the historical-news display from the selected-country panel.
+SQLite is local state. The default file, `sentinel_atlas.db`, is ignored and
+must never be committed.
 
-5. Added Social Pulse backend storage and API.
-   - Added `backend/app/models/sentiment.py`.
-   - Added Social Pulse table registration in `backend/app/db.py`.
-   - Added `backend/app/api/sentiment.py`.
-   - Added `GET /api/countries/{iso3}/social-pulse`.
-   - Added `POST /api/social-pulse/compute-all`.
-   - Added `GET /api/countries/elevated?threshold=55`.
+## Setup
 
-6. Added the four Social Pulse signal services.
-   - `backend/app/services/sentiment/reddit_scraper.py`
-   - `backend/app/services/sentiment/wikipedia_trends.py`
-   - `backend/app/services/sentiment/trends_fear.py`
-   - `backend/app/services/sentiment/news_sentiment.py`
-   - `backend/app/services/sentiment/hf_client.py`
-   - `backend/app/services/sentiment/aggregator.py`
+Prerequisites:
 
-7. Added the convergence rule.
-   - Each signal is normalized to 0-100.
-   - Weighted score is computed as Reddit 25%, Wikipedia 20%, Search 30%, News 25%.
-   - If fewer than 2 signals are elevated above 50, the composite score is dampened by 0.70.
-   - This avoids flagging a country from one noisy source.
+- Node.js 22
+- pnpm 11.10.0, selected by the `packageManager` field
+- Python 3.11+
 
-8. Added the map pulse alert.
-   - `src/components/Map/WorldMap.tsx` fetches `/api/countries/elevated?threshold=55`.
-   - Countries returned by that endpoint get the `pulse-alert` class.
-   - `src/styles.css` contains the red pulse animation.
-
-9. Added demo data and tests.
-   - `backend/scripts/seed_demo_data.py` seeds 35 days of DRC/COD Social Pulse history.
-   - `backend/tests/test_sentiment_api.py` verifies latest pulse and elevated-country filtering.
-   - Frontend tests verify the selected-country panel no longer shows historical-news copy.
-
-## Key Integration Files
-
-Frontend:
-
-- `src/components/SocialPulse/SocialPulsePanel.tsx`
-- `src/components/News/CountryNewsSidebar.tsx`
-- `src/components/Map/WorldMap.tsx`
-- `src/styles.css`
-- `src/state/DashboardContext.tsx`
-- `src/data/adapters/countryNewsAdapter.ts`
-
-Backend:
-
-- `backend/app/api/sentiment.py`
-- `backend/app/models/sentiment.py`
-- `backend/app/services/sentiment/aggregator.py`
-- `backend/app/services/sentiment/*.py`
-- `backend/app/main.py`
-- `backend/app/db.py`
-- `backend/scripts/seed_demo_data.py`
-
-Tests:
-
-- `src/App.test.tsx`
-- `backend/tests/test_sentiment_api.py`
-- `backend/tests/test_news_api.py`
-
-## API Contract
-
-### Get Social Pulse For A Country
-
-```http
-GET /api/countries/{iso3}/social-pulse?days=30
-```
-
-Response shape:
-
-```json
-{
-  "iso3": "COD",
-  "latest": {
-    "social_pulse_score": 72.8,
-    "pulse_level": "elevated",
-    "signals_elevated": 4,
-    "reddit_score": 70,
-    "wikipedia_score": 74,
-    "trends_fear_score": 75,
-    "news_sentiment_score": 72,
-    "computed_at": "2026-04-26T12:00:00+00:00"
-  },
-  "evidence": [
-    {
-      "title": "Evidence headline",
-      "url": "https://example.org/source",
-      "source": "Wikipedia Pageviews",
-      "sentiment_score": 0.78
-    }
-  ],
-  "history": [
-    {
-      "date": "2026-04-26",
-      "social_pulse": 72.8,
-      "reddit": 70,
-      "wikipedia": 74,
-      "trends": 75,
-      "news": 72,
-      "level": "elevated",
-      "signals_elevated": 4
-    }
-  ],
-  "days": 30
-}
-```
-
-### Get Elevated Countries For Map Pulse
-
-```http
-GET /api/countries/elevated?threshold=55
-```
-
-Response shape:
-
-```json
-{
-  "elevated": [
-    {
-      "iso3": "COD",
-      "score": 72.8,
-      "level": "elevated",
-      "signals_elevated": 4
-    }
-  ]
-}
-```
-
-## Local Run Steps
-
-Backend:
+Install the frontend:
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-SENTINEL_DISABLE_STARTUP_JOBS=1 uvicorn app.main:app --reload --port 8000
-```
-
-Frontend:
-
-```bash
-npm install
+pnpm install --frozen-lockfile
 cp .env.example .env.local
-npm run dev
+cp backend/.env.example backend/.env.local
 ```
 
-Open:
-
-```text
-http://localhost:5173
-```
-
-## Demo Data
-
-To seed a 35-day DRC/COD Social Pulse story, run this from the repository root:
+Install the backend:
 
 ```bash
-source backend/venv/bin/activate
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r backend/requirements-dev.txt
+```
+
+The example files contain no credentials. `HF_API_TOKEN` is optional and must
+remain in local environment configuration.
+
+## Local Use
+
+Start the API with networked ingestion and mutations disabled:
+
+```bash
+source backend/.venv/bin/activate
+cd backend
+uvicorn app.main:app --reload --port 8000 --env-file .env.local
+```
+
+In a second terminal:
+
+```bash
+pnpm dev
+```
+
+Open `http://127.0.0.1:5173`.
+
+To load the local synthetic DRC/COD demonstration without contacting upstream
+sources:
+
+```bash
+source backend/.venv/bin/activate
 python -m backend.scripts.seed_demo_data
 ```
-
-If running with a different existing virtual environment:
-
-```bash
-python -m backend.scripts.seed_demo_data
-```
-
-The frontend should then show DRC/COD as elevated and pulse it on the map.
-
-## Environment
-
-Root `.env.local`:
-
-```bash
-VITE_SENTINEL_API_BASE_URL=http://localhost:8000
-```
-
-Backend environment:
-
-```bash
-HF_API_TOKEN=hf_your_token_here
-SENTINEL_DISABLE_STARTUP_JOBS=1
-```
-
-`HF_API_TOKEN` is optional for local demo. Without it, the backend uses keyword fallback scoring for text sentiment.
 
 ## Verification
 
-Frontend:
-
 ```bash
-npm test
-npm run build
+pnpm typecheck
+pnpm test
+pnpm build
+
+source backend/.venv/bin/activate
+ruff check backend
+black --check backend
+python -m pytest backend
 ```
 
-Backend:
+Tests use an in-memory database and do not need external credentials or live
+source access.
 
-```bash
-cd backend
-pytest
-```
+## API Surface
 
-## Integration Notes For The Final Layout
+Read endpoints include:
 
-- Keep Social Pulse inside the selected-country workflow. Do not add a separate top-level Social Pulse or News navigation item unless the final product design explicitly changes that information architecture.
-- Keep map country selection as the source of truth for `iso3`.
-- Preserve the backend contract above if the final layout uses a different UI framework.
-- The pulse map behavior only needs `/api/countries/elevated?threshold=55`.
-- The tab should render source-backed data or a clear unavailable state. Do not add fake headlines, fake outbreaks, fake R0/Rt values, or synthetic disease-risk shading.
-- The current implementation is a feature-ready handoff, not a polished final design system pass.
+- `GET /health`
+- `GET /api/countries/{iso3}/news/latest`
+- `GET /api/countries/{iso3}/news/history`
+- `GET /api/news`
+- `GET /api/ingest/news/runs`
+- `GET /api/countries/{iso3}/social-pulse`
+- `GET /api/countries/elevated`
+
+Operator endpoints are disabled by default:
+
+- `POST /api/ingest/news`
+- `POST /api/social-pulse/compute-all`
+
+Set `SENTINEL_ENABLE_MUTATIONS=1` only in an operator-controlled environment.
+That switch is not authentication. Any internet-facing deployment must place
+the mutation endpoints behind authentication, authorization, rate limits, and
+request logging that excludes sensitive content.
+
+## Network And Background Work
+
+Potential upstreams include Google News RSS, ReliefWeb, WHO Disease Outbreak
+News, ProMED, public Reddit endpoints, Wikipedia Pageviews, Google Trends, and
+the optional Hugging Face Inference API. Adapters are best-effort and upstream
+availability, access rules, response formats, and rate limits can change.
+
+Background ingestion is off by default. `SENTINEL_ENABLE_STARTUP_JOBS=1`
+explicitly opts into startup work and hourly refreshes. Operators remain
+responsible for upstream terms, robots guidance, rate limits, attribution, and
+deployment resource controls.
+
+## CORS And Deployment Defaults
+
+Local origins are the only defaults. Production origins must be listed exactly
+in the comma-separated `ALLOWED_ORIGINS` variable. Credentialed CORS is off by
+default; setting `ALLOW_CREDENTIALS=1` while allowing `*` makes the application
+fail at startup.
+
+Do not deploy the SQLite development configuration as a multi-instance service.
+Do not expose operator endpoints without a separate authentication layer. No
+production deployment is performed or implied by this repository.
+
+## Source Credibility And Provenance
+
+Every displayed article retains a source URL. Credibility labels are configured
+source-tier heuristics: they describe the expected provenance of a publisher or
+feed, not independent verification of an article, the truth of a claim, event
+likelihood, or country risk. Empty or unavailable data must remain visibly
+unavailable; the application must not invent headlines or signals.
+
+See [DATA_AND_SOURCE_NOTICE.md](DATA_AND_SOURCE_NOTICE.md) for source and rights
+boundaries.
+
+## Privacy And Safety
+
+- Store aggregate public-source observations only.
+- Do not ingest or expose names, contact details, medical record identifiers,
+  or other individual-level health information.
+- Safety filters reduce obvious risk but do not replace human review.
+- Keep credentials, local databases, raw response dumps, and private operator
+  logs outside Git.
+- Do not interpret the interface as health, travel, security, or policy advice.
+
+## Limitations
+
+- Source access is incomplete and can fail or change without notice.
+- Country extraction, translation, sentiment, and keyword fallbacks can be
+  wrong or culturally biased.
+- A composite score can amplify shared source bias and cannot establish causal
+  relationships.
+- Stored snapshots become stale unless a human-operated ingestion process is
+  running.
+- The current SQLite architecture is for local evaluation, not production
+  concurrency or durability.
+
+## Contributions And Support
+
+Use GitHub issues for reproducible bugs, source corrections, or documentation
+gaps. For research corrections, include the source URL, access date, affected
+record or screen, and requested change. Use GitHub private vulnerability
+reporting for security issues. Repository-specific guidance overrides inherited
+account defaults; no response-time guarantee is implied.
+
+## Maintainer
+
+Maintained by Muhammad Umar Zafar.
+
+## License
+
+Original software is licensed under the [MIT License](LICENSE). Public-source
+material, publisher content, trademarks, API responses, and other third-party
+material are not relicensed by this repository; see
+[DATA_AND_SOURCE_NOTICE.md](DATA_AND_SOURCE_NOTICE.md).

@@ -19,14 +19,22 @@ class NewsArticle(Base):
     headline_en: Mapped[str] = mapped_column(Text, nullable=False)
     summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     language: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)
-    translation_status: Mapped[str] = mapped_column(String(32), nullable=False, default="not_needed")
+    translation_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="not_needed"
+    )
     country_iso3: Mapped[Optional[str]] = mapped_column(String(3), nullable=True, index=True)
     country_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
-    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    published_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    ingested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
     source_credibility: Mapped[str] = mapped_column(String(32), nullable=False, default="moderate")
     credibility_label: Mapped[str] = mapped_column(String(32), nullable=False, default="Moderate")
-    safety_status: Mapped[str] = mapped_column(String(32), nullable=False, default="safe", index=True)
+    safety_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="safe", index=True
+    )
     safety_reasons: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
@@ -35,7 +43,9 @@ class NewsIngestRun(Base):
     __tablename__ = "news_ingest_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="running", index=True)
     requested_sources: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
