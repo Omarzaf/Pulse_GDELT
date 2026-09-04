@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.sentiment import SentimentSnapshot
 from app.services.sentiment.aggregator import compute_social_pulse, get_pulse_history
+from app.settings import require_mutations_enabled
 
 router = APIRouter()
 
@@ -27,7 +28,10 @@ def get_social_pulse(
     )
 
     if not latest:
-        latest = compute_social_pulse(country_iso3, db)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Social Pulse snapshot is available for this country",
+        )
 
     evidence = []
     if latest.evidence_json:
@@ -54,7 +58,10 @@ def get_social_pulse(
     }
 
 
-@router.post("/social-pulse/compute-all")
+@router.post(
+    "/social-pulse/compute-all",
+    dependencies=[Depends(require_mutations_enabled)],
+)
 def compute_all_pulses(db: Session = Depends(get_db)) -> dict:
     from app.data.countries import ATLAS_ISO3_LIST
 
@@ -74,7 +81,9 @@ def get_elevated_countries(
     db: Session = Depends(get_db),
 ) -> dict:
     subquery = (
-        select(SentimentSnapshot.country_iso3, func.max(SentimentSnapshot.computed_at).label("max_at"))
+        select(
+            SentimentSnapshot.country_iso3, func.max(SentimentSnapshot.computed_at).label("max_at")
+        )
         .group_by(SentimentSnapshot.country_iso3)
         .subquery()
     )

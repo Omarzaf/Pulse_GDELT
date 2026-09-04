@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "Sentinel Atlas Social Pulse"
+type: software
+authors:
+  - family-names: "Zafar"
+    given-names: "Muhammad Umar"
+repository-code: "https://github.com/Omarzaf/Pulse_GDELT"
+version: 0.1.0
+license: MIT

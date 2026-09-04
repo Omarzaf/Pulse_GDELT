@@ -8,7 +8,10 @@ from urllib.parse import quote_plus
 
 from app.services.country_extraction import extract_country, normalize_country
 
-USER_AGENT = "SentinelAtlas/0.1 (+https://localhost; aggregate public news intelligence)"
+USER_AGENT = (
+    "SentinelAtlasSocialPulse/0.1 "
+    "(+https://github.com/Omarzaf/Pulse_GDELT; public-source research module)"
+)
 
 
 @dataclass(frozen=True)
@@ -91,7 +94,7 @@ def fetch_reliefweb(countries: Optional[list[str]] = None, limit: int = 10) -> l
     import requests
 
     params: dict[str, object] = {
-        "appname": "sentinel-atlas",
+        "appname": "sentinel-atlas-social-pulse",
         "profile": "list",
         "limit": limit,
         "sort[]": "date.created:desc",
@@ -119,9 +122,19 @@ def fetch_reliefweb(countries: Optional[list[str]] = None, limit: int = 10) -> l
         source_url = fields.get("url") or result.get("href")
         if not headline or not source_url:
             continue
-        country_names = [country.get("name", "") for country in fields.get("country", []) if isinstance(country, dict)]
-        source_names = [source.get("name", "") for source in fields.get("source", []) if isinstance(source, dict)]
-        published_at = fields.get("date", {}).get("created") if isinstance(fields.get("date"), dict) else None
+        country_names = [
+            country.get("name", "")
+            for country in fields.get("country", [])
+            if isinstance(country, dict)
+        ]
+        source_names = [
+            source.get("name", "")
+            for source in fields.get("source", [])
+            if isinstance(source, dict)
+        ]
+        published_at = (
+            fields.get("date", {}).get("created") if isinstance(fields.get("date"), dict) else None
+        )
         items.append(
             RawNewsItem(
                 source_name="ReliefWeb",
@@ -157,7 +170,9 @@ def fetch_who_don(countries: Optional[list[str]] = None, limit: int = 10) -> lis
         source_url = href if href.startswith("http") else f"https://www.who.int{href}"
         country = extract_country(headline=headline, summary=None)
         if countries and country:
-            requested = {normalize_country(value)[0] for value in countries if normalize_country(value)}
+            requested = {
+                normalize_country(value)[0] for value in countries if normalize_country(value)
+            }
             if country[0] not in requested:
                 continue
         items.append(
@@ -198,7 +213,9 @@ def fetch_promed(countries: Optional[list[str]] = None, limit: int = 10) -> list
         source_url = href if href.startswith("http") else f"https://promedmail.org{href}"
         country = extract_country(headline=headline, summary=None)
         if countries and country:
-            requested = {normalize_country(value)[0] for value in countries if normalize_country(value)}
+            requested = {
+                normalize_country(value)[0] for value in countries if normalize_country(value)
+            }
             if country[0] not in requested:
                 continue
         items.append(

@@ -12,7 +12,9 @@ class SentimentSnapshot(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     country_iso3: Mapped[str] = mapped_column(String(3), nullable=False, index=True)
-    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
 
     social_pulse_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     pulse_level: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)

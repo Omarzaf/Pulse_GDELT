@@ -1,20 +1,23 @@
-# Developer README
+# Sentinel Atlas Social Pulse — Developer Notes
 
-This handoff repo packages the Sentinel Atlas Social Pulse tab and its supporting FastAPI backend.
+This repository packages the Sentinel Atlas Social Pulse module and its
+supporting FastAPI backend. The root `README.md` is the canonical public guide.
 
 ## Backend
 
 1. `cd backend`
-2. `python -m venv venv`
+2. `python -m venv .venv`
 3. Activate the virtual environment:
-   - macOS/Linux: `source venv/bin/activate`
-   - Windows PowerShell: `venv\\Scripts\\Activate.ps1`
-4. `pip install -r requirements.txt`
-5. Optional: set `HF_API_TOKEN` in `backend/.env` or your shell.
-6. For demo/local work, set `SENTINEL_DISABLE_STARTUP_JOBS=1` to avoid automatic hourly fetches while testing.
-7. `SENTINEL_DISABLE_STARTUP_JOBS=1 uvicorn app.main:app --reload --port 8000`
+   - macOS/Linux: `source .venv/bin/activate`
+   - Windows PowerShell: `.venv\\Scripts\\Activate.ps1`
+4. `python -m pip install -r requirements-dev.txt`
+5. Copy `.env.example` to `.env.local`; keep `HF_API_TOKEN` empty unless the
+   optional external inference path is intentionally being tested.
+6. `uvicorn app.main:app --reload --port 8000 --env-file .env.local`
 
-The database is created by the startup path. This repo does not use Alembic yet; `app.db.init_db()` calls `Base.metadata.create_all(...)` and creates `sentinel_atlas.db`.
+The database is created by the startup path. This repo does not use Alembic;
+`app.db.init_db()` calls `Base.metadata.create_all(...)` and creates the ignored
+local file `sentinel_atlas.db`.
 
 Useful backend endpoints:
 
@@ -37,19 +40,22 @@ python -m backend.scripts.seed_demo_data
 
 ## Frontend
 
-1. Create `.env.local` at the repo root.
-2. Set `VITE_SENTINEL_API_BASE_URL=http://localhost:8000`.
-3. `npm install`
-4. `npm run dev`
-5. Open `http://localhost:5173`
+1. Copy the root `.env.example` to `.env.local`.
+2. `pnpm install --frozen-lockfile`
+3. `pnpm dev`
+4. Open `http://127.0.0.1:5173`
 
 If `VITE_SENTINEL_API_BASE_URL` is missing or the backend is unavailable, the news dashboard stays local-only. Social Pulse needs the backend endpoint and will not fabricate data.
 
 ## Push Readiness
 
-- `npm test` passes.
-- `npm run build` passes.
-- `cd backend && pytest` passes inside the activated backend virtualenv.
+- `pnpm typecheck` passes.
+- `pnpm test` passes.
+- `pnpm build` passes.
+- `ruff check backend` and `black --check backend` pass from the repository root.
+- `python -m pytest backend` passes inside the activated backend virtualenv.
+- Networked background jobs and operator mutations remain disabled unless
+  explicitly enabled.
 - No fourth nav item.
 - No country dropdown.
 - No fake public-health data.

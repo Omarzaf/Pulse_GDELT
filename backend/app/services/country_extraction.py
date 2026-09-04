@@ -101,7 +101,9 @@ def extract_country(
 
     text = f"{headline or ''} {summary or ''}".lower()
     padded_text = f" {re.sub(r'[^a-z0-9]+', ' ', text)} "
-    for alias, value in sorted(_alias_index().items(), key=lambda entry: len(entry[0]), reverse=True):
+    for alias, value in sorted(
+        _alias_index().items(), key=lambda entry: len(entry[0]), reverse=True
+    ):
         if len(alias) <= 3 and alias not in FREE_TEXT_SHORT_ALIASES:
             continue
         padded_alias = f" {re.sub(r'[^a-z0-9]+', ' ', alias.lower()).strip()} "

@@ -29,10 +29,15 @@ def compute_news_sentiment_score(iso3: str, db: Session, days: int = 14) -> dict
 
     results = score_texts([article.headline_en for article in articles])
     if not results:
-        return {"score": 0, "article_count": len(articles), "evidence": [], "error": "scoring failed"}
+        return {
+            "score": 0,
+            "article_count": len(articles),
+            "evidence": [],
+            "error": "scoring failed",
+        }
 
     ratio = negative_ratio(results)
-    scored_articles = list(zip(articles, results))
+    scored_articles = list(zip(articles, results, strict=True))
     scored_articles.sort(
         key=lambda item: item[1]["score"] if item[1]["label"] == "negative" else 0,
         reverse=True,

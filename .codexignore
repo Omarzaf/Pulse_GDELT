@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+backend/.venv/
+*.db
+*.sqlite
+*.sqlite3
+*.log

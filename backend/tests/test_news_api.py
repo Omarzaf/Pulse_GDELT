@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
 from app.models.news import NewsArticle
 from app.services import news_ingest
 from app.services.news_sources import RawNewsItem
+from sqlalchemy.orm import Session
 
 
 def utc_now() -> datetime:
@@ -51,8 +50,14 @@ def seed_article(
 
 
 def test_latest_endpoint_returns_only_last_48_hour_items(client, db_session):
-    recent = seed_article(db_session, source_url="https://example.org/recent", published_at=utc_now() - timedelta(hours=2))
-    seed_article(db_session, source_url="https://example.org/old", published_at=utc_now() - timedelta(days=4))
+    recent = seed_article(
+        db_session,
+        source_url="https://example.org/recent",
+        published_at=utc_now() - timedelta(hours=2),
+    )
+    seed_article(
+        db_session, source_url="https://example.org/old", published_at=utc_now() - timedelta(days=4)
+    )
 
     response = client.get("/api/countries/USA/news/latest")
 
@@ -62,8 +67,12 @@ def test_latest_endpoint_returns_only_last_48_hour_items(client, db_session):
     assert payload["empty_state"] is None
 
 
-def test_latest_endpoint_returns_empty_state_when_connected_but_no_recent_reports(client, db_session):
-    seed_article(db_session, source_url="https://example.org/old", published_at=utc_now() - timedelta(days=4))
+def test_latest_endpoint_returns_empty_state_when_connected_but_no_recent_reports(
+    client, db_session
+):
+    seed_article(
+        db_session, source_url="https://example.org/old", published_at=utc_now() - timedelta(days=4)
+    )
 
     response = client.get("/api/countries/USA/news/latest")
 
@@ -75,8 +84,16 @@ def test_latest_endpoint_returns_empty_state_when_connected_but_no_recent_report
 
 
 def test_history_endpoint_returns_older_reports(client, db_session):
-    older = seed_article(db_session, source_url="https://example.org/history", published_at=utc_now() - timedelta(days=7))
-    seed_article(db_session, source_url="https://example.org/recent", published_at=utc_now() - timedelta(hours=3))
+    older = seed_article(
+        db_session,
+        source_url="https://example.org/history",
+        published_at=utc_now() - timedelta(days=7),
+    )
+    seed_article(
+        db_session,
+        source_url="https://example.org/recent",
+        published_at=utc_now() - timedelta(hours=3),
+    )
 
     response = client.get("/api/countries/USA/news/history")
 
@@ -94,8 +111,12 @@ def test_ingest_deduplicates_by_source_url(client, monkeypatch):
         published_at=utc_now(),
         structured_countries=["United States"],
     )
-    monkeypatch.setitem(news_ingest.NEWS_SOURCE_FETCHERS, "mock", lambda countries, limit: [raw, raw])
-    monkeypatch.setattr(news_ingest, "translate_headline", lambda headline, enabled=True: (headline, "not_needed"))
+    monkeypatch.setitem(
+        news_ingest.NEWS_SOURCE_FETCHERS, "mock", lambda countries, limit: [raw, raw]
+    )
+    monkeypatch.setattr(
+        news_ingest, "translate_headline", lambda headline, enabled=True: (headline, "not_needed")
+    )
 
     response = client.post(
         "/api/ingest/news",
@@ -109,6 +130,15 @@ def test_ingest_deduplicates_by_source_url(client, monkeypatch):
     assert payload["duplicate_count"] == 1
 
 
+def test_ingest_is_disabled_without_operator_opt_in(client, monkeypatch):
+    monkeypatch.delenv("SENTINEL_ENABLE_MUTATIONS", raising=False)
+
+    response = client.post("/api/ingest/news", json={})
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Operator-triggered ingestion and computation are disabled"
+
+
 def test_unsafe_individual_level_content_is_rejected(client, monkeypatch):
     raw = RawNewsItem(
         source_name="Google News",
@@ -119,7 +149,9 @@ def test_unsafe_individual_level_content_is_rejected(client, monkeypatch):
         published_at=utc_now(),
         structured_countries=["United States"],
     )
-    monkeypatch.setitem(news_ingest.NEWS_SOURCE_FETCHERS, "mock_unsafe", lambda countries, limit: [raw])
+    monkeypatch.setitem(
+        news_ingest.NEWS_SOURCE_FETCHERS, "mock_unsafe", lambda countries, limit: [raw]
+    )
 
     response = client.post(
         "/api/ingest/news",
@@ -142,8 +174,12 @@ def test_translation_failure_falls_back_safely(client, monkeypatch):
         published_at=utc_now(),
         structured_countries=["France"],
     )
-    monkeypatch.setitem(news_ingest.NEWS_SOURCE_FETCHERS, "mock_translation", lambda countries, limit: [raw])
-    monkeypatch.setattr(news_ingest, "translate_headline", lambda headline, enabled=True: (headline, "failed"))
+    monkeypatch.setitem(
+        news_ingest.NEWS_SOURCE_FETCHERS, "mock_translation", lambda countries, limit: [raw]
+    )
+    monkeypatch.setattr(
+        news_ingest, "translate_headline", lambda headline, enabled=True: (headline, "failed")
+    )
 
     response = client.post(
         "/api/ingest/news",
@@ -165,8 +201,12 @@ def test_credibility_labels_are_source_confidence_only(client, monkeypatch):
         published_at=utc_now(),
         structured_countries=["Kenya"],
     )
-    monkeypatch.setitem(news_ingest.NEWS_SOURCE_FETCHERS, "reliefweb", lambda countries, limit: [raw])
-    monkeypatch.setattr(news_ingest, "translate_headline", lambda headline, enabled=True: (headline, "not_needed"))
+    monkeypatch.setitem(
+        news_ingest.NEWS_SOURCE_FETCHERS, "reliefweb", lambda countries, limit: [raw]
+    )
+    monkeypatch.setattr(
+        news_ingest, "translate_headline", lambda headline, enabled=True: (headline, "not_needed")
+    )
 
     response = client.post(
         "/api/ingest/news",
@@ -182,7 +222,9 @@ def test_credibility_labels_are_source_confidence_only(client, monkeypatch):
 
 
 def test_country_isolation(client, db_session):
-    usa = seed_article(db_session, source_url="https://example.org/usa", iso3="USA", published_at=utc_now())
+    usa = seed_article(
+        db_session, source_url="https://example.org/usa", iso3="USA", published_at=utc_now()
+    )
     seed_article(
         db_session,
         source_url="https://example.org/fra",
