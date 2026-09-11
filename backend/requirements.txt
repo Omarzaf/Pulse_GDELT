@@ -8,5 +8,5 @@ pycountry==24.6.1
 pydantic==2.10.4
 pytrends==4.9.2
 requests==2.34.2
-sqlalchemy==2.0.36
+sqlalchemy==2.0.52
 uvicorn[standard]==0.34.0
